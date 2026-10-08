@@ -1,0 +1,100 @@
+# Automatic-Poimport math
+import time
+
+# Target power factor
+TARGET_PF = 0.95
+
+# Capacitor bank sizes in kVAR
+capacitor_banks = [1, 2, 3, 5]
+
+# Initially all capacitors are OFF
+capacitor_status = [False] * len(capacitor_banks)
+
+
+def calculate_power_factor(real_power, reactive_power):
+    """Calculate power factor."""
+    apparent_power = math.sqrt(
+        real_power ** 2 + reactive_power ** 2
+    )
+
+    if apparent_power == 0:
+        return 1.0
+
+    return real_power / apparent_power
+
+
+def required_kvar(real_power, reactive_power):
+    """Calculate the approximate capacitor kVAR required."""
+    current_pf = calculate_power_factor(real_power, reactive_power)
+
+    if current_pf >= TARGET_PF:
+        return 0
+
+    angle1 = math.acos(current_pf)
+    angle2 = math.acos(TARGET_PF)
+
+    required = real_power * (
+        math.tan(angle1) - math.tan(angle2)
+    )
+
+    return required
+
+
+def control_capacitors(required):
+    """Switch capacitor banks according to required kVAR."""
+
+    remaining = required
+
+    for i, kvar in enumerate(capacitor_banks):
+
+        if remaining >= kvar:
+            capacitor_status[i] = True
+            remaining -= kvar
+        else:
+            capacitor_status[i] = False
+
+
+print("===== AUTOMATIC POWER FACTOR CORRECTION =====")
+
+while True:
+
+    try:
+        real_power = float(input("\nEnter Real Power (kW): "))
+        reactive_power = float(input("Enter Reactive Power (kVAR): "))
+
+        pf = calculate_power_factor(
+            real_power,
+            reactive_power
+        )
+
+        required = required_kvar(
+            real_power,
+            reactive_power
+        )
+
+        print("\n----- SYSTEM STATUS -----")
+        print(f"Power Factor      : {pf:.3f}")
+        print(f"Target Power Factor: {TARGET_PF:.2f}")
+        print(f"Required Capacitor: {required:.2f} kVAR")
+
+        control_capacitors(required)
+
+        print("\nCapacitor Banks:")
+
+        for i, status in enumerate(capacitor_status):
+            state = "ON" if status else "OFF"
+            print(f"Bank {i + 1} ({capacitor_banks[i]} kVAR): {state}")
+
+        if pf >= TARGET_PF:
+            print("\nPower factor is satisfactory.")
+        else:
+            print("\nPower factor correction applied.")
+
+        time.sleep(1)
+
+    except ValueError:
+        print("Please enter valid numerical values.")
+
+    except KeyboardInterrupt:
+        print("\nAPFC system stopped.")
+        breakwer-Factor-Correction
